@@ -1,0 +1,36 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Static Site
+        run: npm run build
+        env:
+          # IMPORTANT: We inject the API URL here during build
+          NEXT_PUBLIC_API_URL: http://${{ secrets.HOST_DNS }}
+
+      - name: Deploy to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HOST_DNS }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "out/*"
+          target: "/var/www/frontend"
+          strip_components: 1 # Removes the 'out/' folder wrapper
