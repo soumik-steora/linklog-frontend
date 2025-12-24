@@ -1,4 +1,4 @@
-name: Deploy Frontend
+name: Frontend Deploy (Auto-Rollback)
 
 on:
   push:
@@ -8,29 +8,61 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with: { node-version: '20' }
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Build Static Site
-        run: npm run build
+      # 1. Build LOCALLY first. 
+      # If this fails, the action stops here. The server is never touched.
+      - run: npm ci
+      - run: npm run build
         env:
-          # IMPORTANT: We inject the API URL here during build
           NEXT_PUBLIC_API_URL: http://${{ secrets.HOST_DNS }}
 
-      - name: Deploy to EC2
-        uses: appleboy/scp-action@master
+      - name: Generate Release Name
+        run: echo "RELEASE_NAME=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
+
+      # 2. Upload only if build succeeded
+      - uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.HOST_DNS }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "out/*"
-          target: "/var/www/frontend"
-          strip_components: 1 # Removes the 'out/' folder wrapper
+          target: "/var/www/frontend/releases/${{ env.RELEASE_NAME }}"
+          strip_components: 1
+
+      # 3. Switch and Verify
+      - uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST_DNS }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            NEW_PATH="/var/www/frontend/releases/${{ env.RELEASE_NAME }}"
+            LINK_PATH="/var/www/frontend/current"
+            OLD_PATH=$(readlink -f $LINK_PATH)
+
+            # Switch Symlink
+            ln -sfn $NEW_PATH $LINK_PATH
+            
+            # Frontend doesn't need a restart, just a check
+            echo "Verifying Nginx..."
+            
+            # Check if Nginx serves the new index.html correctly
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/)
+
+            if [ "$HTTP_CODE" == "200" ]; then
+              echo "✅ Frontend Verified."
+              # Cleanup
+              cd /var/www/frontend/releases
+              ls -t | tail -n +6 | xargs -I {} rm -rf {}
+              exit 0
+            else
+              echo "❌ Frontend Verification Failed (Status: $HTTP_CODE). Rolling back..."
+              
+              # Revert Symlink
+              ln -sfn $OLD_PATH $LINK_PATH
+              echo "🔄 Rollback Complete."
+              exit 1
+            fi
