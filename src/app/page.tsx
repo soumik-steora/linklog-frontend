@@ -563,6 +563,213 @@
 
 //version 4 : 
 
+// "use client";
+// import { useState, useEffect, FormEvent } from 'react';
+// import { Link } from '@/types'; 
+
+// const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+// export default function Home() {
+//   const [links, setLinks] = useState<Link[]>([]);
+  
+//   // Form States
+//   const [url, setUrl] = useState<string>('');
+//   const [siteName, setSiteName] = useState<string>(''); 
+//   const [remarks, setRemarks] = useState<string>('');
+  
+//   // UI States
+//   const [loading, setLoading] = useState<boolean>(false);
+//   const [detecting, setDetecting] = useState<boolean>(false);
+
+//   useEffect(() => {
+//     fetchLinks();
+//   }, []);
+
+//   const fetchLinks = async () => {
+//     try {
+//       const res = await fetch(`${API_BASE}/api/links`);
+//       const data = await res.json();
+//       setLinks(data);
+//     } catch (error) { console.error(error); }
+//   };
+
+//   // ⚡ AUTO-DETECT LOGIC (Debounced)
+//   useEffect(() => {
+//     if (!url) {
+//         setSiteName('');
+//         return;
+//     }
+
+//     const timer = setTimeout(async () => {
+//         if (url.includes('.')) {
+//             setDetecting(true);
+//             setSiteName("Detecting..."); 
+
+//             try {
+//                 const res = await fetch(`${API_BASE}/api/scrape`, {
+//                     method: 'POST',
+//                     headers: { 'Content-Type': 'application/json' },
+//                     body: JSON.stringify({ url }),
+//                 });
+//                 const data = await res.json();
+                
+//                 if (data.title && data.title !== "Unknown Site") {
+//                     setSiteName(data.title);
+//                 } else {
+//                     setSiteName("Unknown Site");
+//                 }
+//             } catch (err) {
+//                 setSiteName("Unknown Site");
+//             } finally {
+//                 setDetecting(false);
+//             }
+//         }
+//     }, 1000);
+
+//     return () => clearTimeout(timer);
+//   }, [url]); 
+
+//   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+//     e.preventDefault();
+//     if (!url) return;
+//     setLoading(true);
+
+//     try {
+//       const res = await fetch(`${API_BASE}/api/links`, {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify({ url, remarks, site_name: siteName }), 
+//       });
+
+//       if (res.ok) {
+//         const newLink = await res.json();
+//         setLinks([newLink, ...links]);
+//         // Reset Form
+//         setUrl('');
+//         setSiteName('');
+//         setRemarks('');
+//       }
+//     } catch (error) {
+//       console.error(error);
+//       alert("Failed to save.");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   return (
+//     <div className="max-w-5xl mx-auto py-10 px-4">
+//       <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">Soumik's LinkLog</h1>
+
+//       <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 mb-8">
+//         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          
+//           {/* URL Input */}
+//           <div>
+//             <label className="block text-sm font-semibold text-gray-700 mb-1">URL</label>
+//             <input 
+//               type="url" 
+//               placeholder="Paste link here..."
+//               className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+//               value={url}
+//               onChange={e => setUrl(e.target.value)}
+//               required
+//             />
+//           </div>
+
+//           {/* Site Name */}
+//           <div>
+//             <div className="flex justify-between mb-1">
+//                 <label className="block text-sm font-semibold text-gray-700">Site Name</label>
+//                 {detecting && <span className="text-xs text-blue-500 font-medium animate-pulse">Auto-detecting...</span>}
+//             </div>
+//             <input 
+//               type="text" 
+//               placeholder="Will be auto-filled..."
+//               className={`w-full border p-3 rounded-lg outline-none transition
+//                 ${detecting ? 'bg-gray-50 text-gray-400' : 'bg-white border-gray-300 focus:ring-2 focus:ring-blue-500'}`}
+//               value={siteName}
+//               onChange={e => setSiteName(e.target.value)}
+//               required
+//             />
+//           </div>
+
+//           {/* Remarks */}
+//           <div>
+//             <label className="block text-sm font-semibold text-gray-700 mb-1">Remarks</label>
+//             <input 
+//               type="text" 
+//               placeholder="Why are you saving this?"
+//               className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+//               value={remarks}
+//               onChange={e => setRemarks(e.target.value)}
+//             />
+//           </div>
+
+//           <button 
+//             type="submit" 
+//             disabled={loading || detecting}
+//             className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 disabled:bg-gray-400 transition shadow-md"
+//           >
+//             {loading ? "Saving..." : "Save Link"}
+//           </button>
+//         </form>
+//       </div>
+
+//       {/* ---------------- UPDATED TABLE (With Date & Time) ---------------- */}
+//       <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+//          <table className="w-full text-left border-collapse">
+//            <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
+//              <tr>
+//                <th className="p-4 font-bold border-b">Time</th>
+//                <th className="p-4 font-bold border-b">Site Name</th>
+//                <th className="p-4 font-bold border-b">Remarks</th>
+//                <th className="p-4 font-bold border-b text-center">Action</th>
+//              </tr>
+//            </thead>
+//            <tbody className="divide-y divide-gray-100">
+//              {links.map(link => (
+//                <tr key={link.id} className="hover:bg-blue-50 transition">
+                 
+//                  {/* 1. Date & Time Column */}
+//                  <td className="p-4 text-sm text-gray-500 whitespace-nowrap">
+//                    {new Date(link.created_at).toLocaleString('en-US', {
+//                       month: 'short', 
+//                       day: 'numeric', 
+//                       hour: '2-digit', 
+//                       minute: '2-digit'
+//                    })}
+//                  </td>
+
+//                  {/* 2. Site Name */}
+//                  <td className="p-4 font-medium text-gray-900">{link.site_name}</td>
+                 
+//                  {/* 3. Remarks */}
+//                  <td className="p-4 text-gray-600">{link.remarks || "-"}</td>
+
+//                  {/* 4. Action Button */}
+//                  <td className="p-4 text-center">
+//                     <a 
+//                         href={link.original_url} 
+//                         target="_blank" 
+//                         rel="noopener noreferrer"
+//                         className="inline-flex items-center gap-1 text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-md text-sm font-medium transition shadow-sm"
+//                     >
+//                         Open ↗
+//                     </a>
+//                  </td>
+//                </tr>
+//              ))}
+//            </tbody>
+//          </table>
+//       </div>
+//     </div>
+//   );
+// }
+
+
+//version 5
+
 "use client";
 import { useState, useEffect, FormEvent } from 'react';
 import { Link } from '@/types'; 
@@ -593,18 +800,13 @@ export default function Home() {
     } catch (error) { console.error(error); }
   };
 
-  // ⚡ AUTO-DETECT LOGIC (Debounced)
+  // ⚡ AUTO-DETECT LOGIC
   useEffect(() => {
-    if (!url) {
-        setSiteName('');
-        return;
-    }
-
+    if (!url) { setSiteName(''); return; }
     const timer = setTimeout(async () => {
         if (url.includes('.')) {
             setDetecting(true);
             setSiteName("Detecting..."); 
-
             try {
                 const res = await fetch(`${API_BASE}/api/scrape`, {
                     method: 'POST',
@@ -612,20 +814,15 @@ export default function Home() {
                     body: JSON.stringify({ url }),
                 });
                 const data = await res.json();
-                
                 if (data.title && data.title !== "Unknown Site") {
                     setSiteName(data.title);
                 } else {
                     setSiteName("Unknown Site");
                 }
-            } catch (err) {
-                setSiteName("Unknown Site");
-            } finally {
-                setDetecting(false);
-            }
+            } catch (err) { setSiteName("Unknown Site"); } 
+            finally { setDetecting(false); }
         }
     }, 1000);
-
     return () => clearTimeout(timer);
   }, [url]); 
 
@@ -644,125 +841,149 @@ export default function Home() {
       if (res.ok) {
         const newLink = await res.json();
         setLinks([newLink, ...links]);
-        // Reset Form
-        setUrl('');
-        setSiteName('');
-        setRemarks('');
+        setUrl(''); setSiteName(''); setRemarks('');
       }
-    } catch (error) {
-      console.error(error);
-      alert("Failed to save.");
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { console.error(error); alert("Failed to save."); } 
+    finally { setLoading(false); }
+  };
+
+  // Helper to format date cleanly
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString('en-US', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-10 px-4">
-      <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">Soumik's LinkLog</h1>
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        
+        <h1 className="text-3xl sm:text-4xl font-extrabold mb-8 text-center text-gray-900 tracking-tight">
+          Soumik's LinkLog
+        </h1>
 
-      <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 mb-8">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          
-          {/* URL Input */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">URL</label>
-            <input 
-              type="url" 
-              placeholder="Paste link here..."
-              className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-              value={url}
-              onChange={e => setUrl(e.target.value)}
-              required
-            />
-          </div>
-
-          {/* Site Name */}
-          <div>
-            <div className="flex justify-between mb-1">
-                <label className="block text-sm font-semibold text-gray-700">Site Name</label>
-                {detecting && <span className="text-xs text-blue-500 font-medium animate-pulse">Auto-detecting...</span>}
+        {/* --- FORM SECTION --- */}
+        <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-gray-100 mb-10">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">URL</label>
+              <input 
+                type="url" placeholder="Paste link here..."
+                className="w-full border border-gray-300 bg-gray-50 p-3 sm:p-4 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition text-gray-900"
+                value={url} onChange={e => setUrl(e.target.value)} required
+              />
             </div>
-            <input 
-              type="text" 
-              placeholder="Will be auto-filled..."
-              className={`w-full border p-3 rounded-lg outline-none transition
-                ${detecting ? 'bg-gray-50 text-gray-400' : 'bg-white border-gray-300 focus:ring-2 focus:ring-blue-500'}`}
-              value={siteName}
-              onChange={e => setSiteName(e.target.value)}
-              required
-            />
-          </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <div className="flex justify-between mb-2">
+                    <label className="block text-sm font-semibold text-gray-700">Site Name</label>
+                    {detecting && <span className="text-xs text-blue-600 font-bold animate-pulse">Auto-detecting...</span>}
+                </div>
+                <input 
+                  type="text" placeholder="Will be auto-filled..."
+                  className={`w-full border p-3 sm:p-4 rounded-xl outline-none transition
+                    ${detecting ? 'bg-blue-50 text-blue-500 border-blue-200' : 'bg-gray-50 border-gray-300 focus:ring-4 focus:ring-blue-100 focus:border-blue-500'}`}
+                  value={siteName} onChange={e => setSiteName(e.target.value)} required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Remarks</label>
+                <input 
+                  type="text" placeholder="Why are you saving this?"
+                  className="w-full border border-gray-300 bg-gray-50 p-3 sm:p-4 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition text-gray-900"
+                  value={remarks} onChange={e => setRemarks(e.target.value)}
+                />
+              </div>
+            </div>
+            <button 
+              type="submit" disabled={loading || detecting}
+              className="w-full bg-blue-600 text-white py-3.5 sm:py-4 rounded-xl font-bold text-lg hover:bg-blue-700 disabled:bg-gray-300 transition-all shadow-md active:scale-[0.98]"
+            >
+              {loading ? "Saving..." : "Save Link"}
+            </button>
+          </form>
+        </div>
 
-          {/* Remarks */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Remarks</label>
-            <input 
-              type="text" 
-              placeholder="Why are you saving this?"
-              className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-              value={remarks}
-              onChange={e => setRemarks(e.target.value)}
-            />
-          </div>
+        {/* --- DATA DISPLAY SECTION --- */}
+        
+        {/* VIEW 1: MOBILE CARD VIEW (Visible only on small screens) */}
+        <div className="block md:hidden space-y-4">
+            {links.map(link => (
+                <div key={link.id} className="bg-white p-5 rounded-2xl shadow-md border border-gray-100 flex flex-col gap-3">
+                    {/* Header: Name & Button */}
+                    <div className="flex justify-between items-start">
+                        <h3 className="font-bold text-lg text-gray-900 leading-tight">
+                            {link.site_name}
+                        </h3>
+                        <a 
+                            href={link.original_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="shrink-0 text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm"
+                        >
+                            OPEN ↗
+                        </a>
+                    </div>
+                    
+                    {/* Date */}
+                    <div className="text-xs font-mono text-gray-400">
+                        {formatDate(link.created_at)}
+                    </div>
 
-          <button 
-            type="submit" 
-            disabled={loading || detecting}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 disabled:bg-gray-400 transition shadow-md"
-          >
-            {loading ? "Saving..." : "Save Link"}
-          </button>
-        </form>
-      </div>
+                    {/* Remarks (Highlighted Box) */}
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm text-gray-700 italic">
+                        {link.remarks || "No remarks"}
+                    </div>
+                </div>
+            ))}
+            {links.length === 0 && (
+                <div className="text-center text-gray-400 py-4">No links saved yet.</div>
+            )}
+        </div>
 
-      {/* ---------------- UPDATED TABLE (With Date & Time) ---------------- */}
-      <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
-         <table className="w-full text-left border-collapse">
-           <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-             <tr>
-               <th className="p-4 font-bold border-b">Time</th>
-               <th className="p-4 font-bold border-b">Site Name</th>
-               <th className="p-4 font-bold border-b">Remarks</th>
-               <th className="p-4 font-bold border-b text-center">Action</th>
-             </tr>
-           </thead>
-           <tbody className="divide-y divide-gray-100">
-             {links.map(link => (
-               <tr key={link.id} className="hover:bg-blue-50 transition">
-                 
-                 {/* 1. Date & Time Column */}
-                 <td className="p-4 text-sm text-gray-500 whitespace-nowrap">
-                   {new Date(link.created_at).toLocaleString('en-US', {
-                      month: 'short', 
-                      day: 'numeric', 
-                      hour: '2-digit', 
-                      minute: '2-digit'
-                   })}
-                 </td>
 
-                 {/* 2. Site Name */}
-                 <td className="p-4 font-medium text-gray-900">{link.site_name}</td>
-                 
-                 {/* 3. Remarks */}
-                 <td className="p-4 text-gray-600">{link.remarks || "-"}</td>
+        {/* VIEW 2: DESKTOP TABLE VIEW (Hidden on mobile, Visible on Tablet+) */}
+        <div className="hidden md:block bg-white shadow-lg rounded-2xl overflow-hidden border border-gray-100">
+           <table className="w-full text-left border-collapse">
+               <thead className="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider">
+                 <tr>
+                   <th className="p-5 font-bold border-b">Time</th>
+                   <th className="p-5 font-bold border-b">Site Name</th>
+                   <th className="p-5 font-bold border-b">Remarks</th>
+                   <th className="p-5 font-bold border-b text-center">Action</th>
+                 </tr>
+               </thead>
+               <tbody className="divide-y divide-gray-100">
+                 {links.map(link => (
+                   <tr key={link.id} className="hover:bg-blue-50 transition group">
+                     <td className="p-5 text-sm text-gray-500 whitespace-nowrap font-mono">
+                       {formatDate(link.created_at)}
+                     </td>
+                     <td className="p-5 font-semibold text-gray-900">{link.site_name}</td>
+                     <td className="p-5 text-gray-600 max-w-[250px] truncate">{link.remarks || "-"}</td>
+                     <td className="p-5 text-center">
+                        <a 
+                            href={link.original_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm"
+                        >
+                            Open ↗
+                        </a>
+                     </td>
+                   </tr>
+                 ))}
+               </tbody>
+           </table>
+           {links.length === 0 && (
+                <div className="text-center py-12 text-gray-400">
+                    <p>No links saved yet. Add your first one above!</p>
+                </div>
+            )}
+        </div>
 
-                 {/* 4. Action Button */}
-                 <td className="p-4 text-center">
-                    <a 
-                        href={link.original_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-md text-sm font-medium transition shadow-sm"
-                    >
-                        Open ↗
-                    </a>
-                 </td>
-               </tr>
-             ))}
-           </tbody>
-         </table>
       </div>
     </div>
   );
 }
+
