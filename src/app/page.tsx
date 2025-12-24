@@ -659,7 +659,7 @@ export default function Home() {
 
   return (
     <div className="max-w-5xl mx-auto py-10 px-4">
-      <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">LinkLog</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">Soumik's LinkLog</h1>
 
       <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 mb-8">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
