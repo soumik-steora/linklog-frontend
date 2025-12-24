@@ -859,7 +859,7 @@ export default function Home() {
       <div className="max-w-7xl mx-auto">
         
         <h1 className="text-3xl sm:text-4xl font-extrabold mb-8 text-center text-gray-900 tracking-tight">
-          Soumik's LinkLog
+          Soumik's LinkLog v2
         </h1>
 
         {/* --- FORM SECTION --- */}
